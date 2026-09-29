@@ -1,95 +1,141 @@
-# Node.js, Docker, and Nginx Reverse Proxy
+# Nginx + Docker + Node.js
 
-This project runs a small Express application behind an Nginx reverse proxy using Docker Compose.
+This project demonstrates how to run a simple Node.js application behind an Nginx reverse proxy using Docker Compose.
 
-The Node.js application listens on port `3000` inside the Docker network. Nginx listens on port `80` in its container and publishes it as port `8080` on the host, so requests should be made through `http://localhost:8080`.
+## Overview
+The application stack contains two services:
+
+- `app`: a Node.js Express app running on port `3000`
+- `nginx`: an Nginx reverse proxy that listens on port `8080` and forwards requests to the app service
+
+This setup is useful for learning container networking, reverse proxy configuration, and Docker-based deployment patterns.
+
+## Architecture
+```text
+Browser
+  -> http://localhost:8080
+      -> Nginx container (port 80)
+          -> app container (port 3000)
+              -> Express app
+```
+
+## Project Structure
+```text
+.
+├── app.js
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+├── package.json
+├── README.md
+```
+
+## Files Explained
+- `app.js` — Starts a simple Express server that returns a message on `/`
+- `package.json` — Defines the Node.js app and dependency (`express`)
+- `Dockerfile` — Builds the app image using a Node.js builder stage and a distroless runtime stage
+- `nginx.conf` — Configures Nginx to proxy all incoming traffic to `http://app:3000`
+- `docker-compose.yml` — Starts both containers and exposes Nginx on host port `8080`
 
 ## Prerequisites
+Before running the project, make sure you have:
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
-- Git, if cloning this repository
+- Docker installed and running
+- Docker Compose available
+- Git (optional, if you are cloning the repo)
 
-Verify Docker is available:
+Verify your Docker installation:
 
 ```bash
 docker --version
 docker compose version
 ```
-## Quick start
 
-From the project directory, build and start both containers:
+## Run the Project
+From the project directory, run:
 
 ```bash
 docker compose up --build
 ```
 
-Open the application at:
+This will build the app image and start both containers.
 
+## Access the Application
+Open the following URL in your browser:
 
+```text
 http://localhost:8080
+```
 
+You should see a response like:
 
-Or test it from a terminal:
+```text
+Hello from Abdullah Node.js app
+```
+
+You can also test it from the terminal:
 
 ```bash
 curl http://localhost:8080
+```
 
+## Stop the Containers
+To stop and remove the running containers:
 
-Expected response:
+```bash
+docker compose down
+```
 
-
-Hello from Abdullah Node.js app
-
-
-The command runs in the foreground and streams container logs. Press `Ctrl+C` to stop the stack.
-
-To start the stack in the background:
+To run the stack in the background:
 
 ```bash
 docker compose up --build -d
 ```
 
-To stop and remove the containers:
-
-```bash
-docker compose down
-
-
-## Common Docker Compose commands
-
-View the current container status:
-
-```bash
-docker compose ps
-
-
-Follow logs for all services:
+To view logs:
 
 ```bash
 docker compose logs -f
 ```
-Recreate the stack after changing `docker-compose.yml` or `nginx.conf`:
+
+To check container status:
 
 ```bash
-docker compose up --build -d
+docker compose ps
 ```
-Remove containers and the Compose network:
 
-```bash
-docker compose down
+## Docker Details
+### Application container
+The app uses a lightweight Node.js image, installs production dependencies, and starts the Express server on port `3000`.
 
-### Dockerfile
+### Nginx container
+Nginx listens on port `80` inside the container and is published to host port `8080` via Docker Compose.
 
-The Dockerfile uses two stages:
+The `nginx.conf` file forwards all requests to the app service:
 
-1. `node:22-slim` installs production dependencies and copies the application source.
-2. `gcr.io/distroless/nodejs22-debian12` runs the application with a smaller runtime image and no shell.
+```nginx
+events {}
+http {
+    server {
+        listen 80;
+        location / {
+            proxy_pass http://app:3000;
+        }
+    }
+}
+```
 
-The runtime image starts `app.js` with the distroless image's built-in Node.js entrypoint.
+## Notes
+- The app service is not exposed directly to the host; it is only reachable internally via the Docker network.
+- Nginx acts as a reverse proxy and exposes the service publicly on port `8080`.
+- This is a simple demonstration of container orchestration and request forwarding.
 
+## Example Response
+The app returns:
 
+```text
+Hello from Abdullah Node.js app
+```
 
-
-
-
-
+## Summary
+This project is a simple and effective example of deploying a Node.js application with Nginx using Docker Compose, demonstrating reverse proxying, service-to-service communication, and containerized deployment.
